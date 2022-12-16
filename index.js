@@ -109,12 +109,38 @@ db.on('open', function () {
       });
   });
 
+  //Get html file for making the post request
+  app.get('/findevent', (req, res) => {
+    res.sendFile(path.join(__dirname, '/main.html'));
+  });
+
+  // Parser to obtain the content in the request body.
+  app.use(bodyParser.urlencoded({ extended: false }));
+
+  // Handle POST request for /ev
+  app.post('/ev', (req, res, next) => {
+    let ev_Id = req.body.eventId;
+    let ev_name = req.body.name;
+    let ev_loc = req.body.loc;
+    let ev_quota = req.body.quota;
+    
+    res.send({
+      'Event ID' : ev_name,
+      'Name' : ev_Id,
+      'Location' : ev_loc,
+      'Quota' : ev_quota,
+    });
+  next;
+});
+
   app.all('/*', (req, res) => {
     res.send('Default page.');
   });
 
   console.log('Connection is open...');
 });
+
+const server = app.listen(3000);
 
 /*
 app.get('/main', (req, res) => {
@@ -142,28 +168,4 @@ app.get('/course/:courseid/building/:buildid', (req, res) => {
     'Building': building,
   });
 });
-
-//Get html file for making the post request
-app.get('/findevent', (req, res) => {
-  res.sendFile(path.join(__dirname, '/main.html'));
-});
-
-// Parser to obtain the content in the request body.
-app.use(bodyParser.urlencoded({ extended: false }));
-
-// Handle POST request for /event
-app.post('/event', (req, res, next) => {
-  let venue = req.body['loc'];
-  let time = req.body['epoch'];
-  //const venue = req.body.loc;
-  //const time = req.body.epoch;
-
-  res.send({
-    'Location1' : venue,
-    'Time' : time,
-  });
-  next;
-});
 */
-
-const server = app.listen(3000);

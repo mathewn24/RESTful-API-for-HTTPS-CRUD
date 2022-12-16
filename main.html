@@ -5,9 +5,12 @@
   </head>
   <body>
     <script src="/index.js"></script>
-    <form action="/event" method="post">
+    <h1>New Event</h1>
+    <form action="/ev" method="post">
+      <input name="eventId" placeholder="Event ID" />
+      <input name="name" placeholder="Event Name" />
       <input name="loc" placeholder="Event Location" />
-      <input name="epoch" placeholder="Start Time" />
+      <input name="quota" placeholder="Event Quota" />
       <button>Submit</button>
     </form>
   </body>
