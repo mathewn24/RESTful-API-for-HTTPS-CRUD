@@ -5,6 +5,7 @@ const path = require('path');
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 const cors = require('cors');
+const { argv } = require('process');
 app.use(cors());
 
 mongoose.connect(
@@ -36,54 +37,18 @@ db.on('open', function () {
 
   const Event = mongoose.model('Event', eventSchema);
   const Location = mongoose.model('Location', locationSchema);
-  
-  Event.findOne({
-    eventId: 23432,
-  })
-    .populate('loc')
-    .exec(function (err, event) {
-      if (err) {
-        console.log('Error: ' + err);
-        return err;
-      } else {
-        console.log('Event 1 is located at: ' + event);
-      }
-    });
 
-  app.get('/setlocation', (req, res) => {
-    Location.create(
-      {
-        locId: 234,
-        name: 'CUHK',
-        quota: 11,
-      },
-      (err, location) => {
-        if (err) {
-          console.log('Error');
-          return err;
-        } else {
-          console.log(
-            'The location is at ' +
-              location.name +
-              '\n with a quota of: ' +
-              location.quota +
-              '\n and location ID: ' +
-              location.locId
-          );
-        }
-      }
-    );
-  });
+  // Q1:GET http://localhost:3000/ev/eventId
 
   app.get('/ev/:eventId', (req, res) => {
     Event.findOne({ eventId: req.params['eventId'] }, 'eventId name loc quota')
       .populate('loc')
       .exec((err, event) => {
         if (err) {
-          res.send(err);
+          res.redirect(404, '/error404');
+
         } else {
-          //event.loc = location1;
-          console.log('The location is ' + event);
+          //console.log('The location is ' + event);
           res.send(
             '{<br/>"eventId": ' +
               event.eventId +
@@ -109,29 +74,128 @@ db.on('open', function () {
       });
   });
 
+
+  // Q2: POST http://llocalhost:3000/ev
+
   //Get html file for making the post request
-  app.get('/findevent', (req, res) => {
+  app.get('/newevent', (req, res) => {
     res.sendFile(path.join(__dirname, '/main.html'));
   });
 
   // Parser to obtain the content in the request body.
   app.use(bodyParser.urlencoded({ extended: false }));
-
+ 
   // Handle POST request for /ev
   app.post('/ev', (req, res, next) => {
-    let ev_Id = req.body.eventId;
-    let ev_name = req.body.name;
-    let ev_loc = req.body.loc;
-    let ev_quota = req.body.quota;
-    
-    res.send({
-      'Event ID' : ev_name,
-      'Name' : ev_Id,
-      'Location' : ev_loc,
-      'Quota' : ev_quota,
+    var ev_name = req.body.name;
+    var ev_locId = req.body.locId;
+    var ev_quota = req.body.quota;
+    console.log('Name: ' + ev_name + ' Loc ID: ' + ev_locId + ' Quota: ' + ev_quota);
+
+    var ev_Id;
+    // Find the event with the maximum event Id by sorting
+    // in descending order, and get the first element which is the largest,
+    // and assign its ID + 1 to ev_Id.
+
+    var maxEventId = Event.find({}).sort('-eventId').limit(1);
+    maxEventId.exec((err, maxId) => {
+      if (err) {
+        return err;
+      }
+
+      ev_Id = maxId[0].eventId + 1;
     });
-  next;
-});
+
+    // Find the location with given locId and see if
+    // its quota is large enough for the event being created.
+
+    var isLocQuotaEnough = { locId: ev_locId };
+    Location.findOne(isLocQuotaEnough, (err, location) => {
+      if (err) {
+        console.log('location not found error.');
+      }
+
+      if (location.quota >= ev_quota) {
+        // Create event after requirements met.
+        Event.create(
+          {
+            eventId: ev_Id,
+            name: ev_name,
+            loc: location,
+            quota: ev_quota,
+          },
+          (err, event) => {
+            if (err) {
+              res.send(err);
+            } else {
+              console.log('Success! Event created: \n' + event);
+              //res.send('The new created event:' + '<br/>' + event);
+              res.redirect(201, '/ev/' + event.eventId);
+            }
+          }
+        );
+      } else {
+        console.log('ERROR 406');
+        console.error(406);
+        res.redirect(406, '/error406');
+      }
+    });
+
+    next;
+  });
+
+
+  // Q3: DELETE http://localhost:3000/ev/eventId
+  
+  app.delete('/ev/:eventId', (req, res) => {
+    console.log(req.params.eventId);
+    Event.findOneAndRemove({ eventId: req.params['eventId'] })
+      .exec((err, event) => {
+        if (err) {
+          console.log("error");
+          res.redirect(404, '/error404');
+
+        } else if (event == null){
+          res.statusCode = 404;
+          res.send("404 This Event Is Not Found.");
+        }else {
+          console.log('The event is deleted.');
+          res.sendStatus(204);
+        }
+      });
+  });
+
+
+  // Q4: GET http://localhost:3000/ev
+
+  // List out all the events existing in the database currently.
+  app.get('/ev', (req, res) =>{
+    
+    Event.find({})
+    .populate('loc')
+    .exec(function (err, event) {
+      if (err) {
+        console.log('Error: ' + err);
+        return err;
+      } else {
+        for (var i = 0; i < event.length; i++) {
+          console.log('Event ' + i + ' is located at: ' + event);
+        }
+        res.send('Event:' + '<br/>' + event) + '<br/>';
+      }
+    });
+  });
+
+  
+
+  //Error Pages
+  app.get('/error406', (req, res) => {
+    res.send("Error406 : Event not created.");
+  });
+
+  app.get('/error404', (req, res) => {
+    res.send("Error404 : Event not found.");
+  });
 
   app.all('/*', (req, res) => {
     res.send('Default page.');
@@ -141,31 +205,3 @@ db.on('open', function () {
 });
 
 const server = app.listen(3000);
-
-/*
-app.get('/main', (req, res) => {
-  res.send('Hello World!');
-});
-
-//Send through query in url
-app.get('/class', (req, res) => {
-  const cid = req.query.id;
-  const instructor = req.query.teach;
-
-  res.send({
-    'Class ID': cid,
-    'Course instructor': instructor,
-  });
-});
-
-//Send through params in url
-app.get('/course/:courseid/building/:buildid', (req, res) => {
-  let course = req.params.courseid;
-  let building = req.params.buildid;
-
-  res.send({
-    'Course': course,
-    'Building': building,
-  });
-});
-*/
