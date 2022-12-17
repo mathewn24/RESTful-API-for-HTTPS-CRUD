@@ -4,8 +4,9 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
-const cors = require('cors');
 const { argv } = require('process');
+
+const cors = require('cors');
 app.use(cors());
 
 mongoose.connect(
@@ -90,7 +91,7 @@ db.on('open', function () {
     var ev_name = req.body.name;
     var ev_locId = req.body.locId;
     var ev_quota = req.body.quota;
-    console.log('Name: ' + ev_name + ' Loc ID: ' + ev_locId + ' Quota: ' + ev_quota);
+    //console.log('Name: ' + ev_name + ' Loc ID: ' + ev_locId + ' Quota: ' + ev_quota);
 
     var ev_Id;
     // Find the event with the maximum event Id by sorting
@@ -157,7 +158,7 @@ db.on('open', function () {
 
         } else if (event == null){
           res.statusCode = 404;
-          res.send("404 This Event Is Not Found.");
+          res.send("404 Not Found.");
         }else {
           console.log('The event is deleted.');
           res.sendStatus(204);
@@ -178,15 +179,64 @@ db.on('open', function () {
         console.log('Error: ' + err);
         return err;
       } else {
-        for (var i = 0; i < event.length; i++) {
-          console.log('Event ' + i + ' is located at: ' + event);
-        }
-        res.send('Event:' + '<br/>' + event) + '<br/>';
+        res.send('Event:' + '<br/>' + event + '<br/>');
       }
     });
   });
 
-  
+
+  // Q5: GET http://localhost:3000/lo/locId
+
+  // Show the details for the specified location ID.
+  app.get('/lo/:locId', (req, res) => {
+    Location.findOne({ locId: req.params['locId'] })
+      .exec((err, location) => {
+        if (err) {
+          res.statusCode = 404;
+          res.send('Error 404 Not Found');
+
+        } else {
+          //console.log('The location is ' + event);
+          res.send(
+            '{<br/>"locId": ' +
+              location.locId +
+              ',<br/>' +
+              '"name": "' +
+              location.name +
+              '",<br/>'+
+              '"quota": ' +
+              location.quota +
+              '<br/>}'
+          );
+        }
+      });
+  });
+
+
+  // Q6: GET http://localhost:3000/lo
+
+  // List all of the locations currently available in the database.
+  app.get('/lo', (req, res) =>{
+    
+    Location.find({})
+    .exec(function (err, location) {
+      if (err) {
+        console.log('Error: ' + err);
+        return err;
+      } else {
+        for (var i = 0; i < location.length; i++) {
+          console.log('Location ' + i + ' is: ' + location);
+        }
+        res.send('Location:' + '<br/>' + location + '<br/>');
+      }
+    });
+  });
+
+
+  // Q7: GET http://localhost:3000/ev?q=number
+
+  // List all the events with quota of atleast this number
+
 
   //Error Pages
   app.get('/error406', (req, res) => {
