@@ -168,10 +168,33 @@ db.on('open', function () {
 
 
   // Q4: GET http://localhost:3000/ev
+  // and 
+  // Q7: GET http://localhost:3000/ev?q=number
 
   // List out all the events existing in the database currently.
   app.get('/ev', (req, res) =>{
+
+    var quotaSize = req.query['q'];
     
+    if(quotaSize){
+      // List all the events with quota of atleast this number,
+      // eg. greater that or equal to the number.
+      Event.find({quota: {$gte: quotaSize}}, (err, events) =>{
+        if(err){
+          console.log(err);
+        } else if (events == null){
+          res.send("[" + "<br/>" + "]");
+        } else {
+          console.log(events);
+          res.send("Events greater than or equal to query quota:" + 
+          "<br/>" + "[" + events + "]");
+        }
+
+      });
+      //res.send(quotaSize);
+
+    } else {
+
     Event.find({})
     .populate('loc')
     .exec(function (err, event) {
@@ -182,6 +205,9 @@ db.on('open', function () {
         res.send('Event:' + '<br/>' + event + '<br/>');
       }
     });
+
+    }
+
   });
 
 
@@ -231,11 +257,6 @@ db.on('open', function () {
       }
     });
   });
-
-
-  // Q7: GET http://localhost:3000/ev?q=number
-
-  // List all the events with quota of atleast this number
 
 
   //Error Pages
