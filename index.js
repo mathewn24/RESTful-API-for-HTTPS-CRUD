@@ -5,6 +5,8 @@ const path = require('path');
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 const { argv } = require('process');
+var http = require('http');
+var fs = require("fs");
 
 const cors = require('cors');
 const { format } = require('path');
@@ -47,7 +49,8 @@ db.on('open', function () {
       .populate('loc')
       .exec((err, event) => {
         if (err) {
-          res.redirect(404, '/error404');
+          res.writeHead(404, {'Content-Type' : "text/plain"});
+          //res.redirect(404, '/error404');
 
         } else {
           //console.log('The location is ' + event);
@@ -332,7 +335,56 @@ db.on('open', function () {
 
   // Get html file for making the post request
     app.get('/updateevent', (req, res) => {
-      res.sendFile(path.join(__dirname, '/update1.html'));
+      Event.find({})
+      .populate('loc')
+      .exec(function (err, event) {
+        if (err) {
+          console.log('Error: ' + err);
+          return err;
+        } else {
+          let format = ["[" + "<br>"];
+          for(let i = 0; i<event.length; i++){
+            format += [
+              '{<br/>"eventId": ' +
+              event[i].eventId +
+              ',<br/>' +
+              '"name": "' +
+              event[i].name +
+              '",<br/>' +
+              '"loc": ' +
+              '<br/>{' +
+              '<br/>"locId": ' +
+              event[i].loc.locId +
+              ',<br/>' +
+              '"name": "' +
+              event[i].loc.name +
+              '"<br/>' +
+              '},' +
+              '<br/>' +
+              '"quota": ' +
+              event[i].quota +
+              '<br/>} <br/>'
+            ];
+            if(i == event.length-1){
+              format+= ["]"];
+            } else{
+              format += [",<br/>"];
+            }
+          }
+          //res.send(format);
+          fs.readFile('./update1.html', null, (err, data) => {
+            if(err){
+              console.log(err);
+            } else {
+              res.send(data + "Database: <br>" + format);
+              //res.write(data);
+            }
+          })
+          //res.sendFile(path.join(__dirname, '/update1.html'));
+          console.log(format);
+        }
+      });
+      
     });
 
     app.put('/ev/:eventid', (req, res) => {
@@ -367,30 +419,6 @@ db.on('open', function () {
         }
       })
     })
-
- /*    app.put('/ev/:evId', (req, res) => {
-      console.log(req.body);
-      let evId = req.body.updateId;
-      let evName = req.body.updateName;
-      let evLocId = req.body.updateLocId;
-      let evQuota = req.body.updateQuota;
-
-      Event.findOne({ eventId: evId})
-        .populate('loc')
-        .exec((err, event) => {
-          if(err){
-            console.log(err);
-          } else{
-            event.eventId = evId;
-            event.name = evName;
-            event.loc.locId = evLocId;
-            event.quota = evQuota;
-            console.log("Updated event: " + event);
-            res.send("Your event has been updated successfully:" + "<br/>" + event);
-          }
-        });
-      });
- */
 
   // Error Pages
     app.get('/error406', (req, res) => {
