@@ -7,6 +7,7 @@ const Schema = mongoose.Schema;
 const { argv } = require('process');
 
 const cors = require('cors');
+const { format } = require('path');
 app.use(cors());
 
 mongoose.connect(
@@ -64,7 +65,7 @@ db.on('open', function () {
               ',<br/>' +
               '"name": "' +
               event.loc.name +
-              '",<br/>' +
+              '"<br/>' +
               '},' +
               '<br/>' +
               '"quota": ' +
@@ -76,7 +77,7 @@ db.on('open', function () {
   });
 
 
-  // Q2: POST http://llocalhost:3000/ev
+  // Q2: POST http://localhost:3000/ev
 
   //Get html file for making the post request
   app.get('/newevent', (req, res) => {
@@ -91,8 +92,6 @@ db.on('open', function () {
     var ev_name = req.body.name;
     var ev_locId = req.body.locId;
     var ev_quota = req.body.quota;
-    //console.log('Name: ' + ev_name + ' Loc ID: ' + ev_locId + ' Quota: ' + ev_quota);
-
     var ev_Id;
     // Find the event with the maximum event Id by sorting
     // in descending order, and get the first element which is the largest,
@@ -182,17 +181,42 @@ db.on('open', function () {
       Event.find({quota: {$gte: quotaSize}}, (err, events) =>{
         if(err){
           console.log(err);
-        } else if (events == null){
-          res.send("[" + "<br/>" + "]");
         } else {
           console.log(events);
-          res.send("Events greater than or equal to query quota:" + 
-          "<br/>" + "[" + events + "]");
+          let format = [];
+          for(let i = 0; i<events.length; i++){
+            
+            format += ["[" + "<br>"+
+              '{<br/>"eventId": ' +
+              events[i].eventId +
+              ',<br/>' +
+              '"name": "' +
+              events[i].name +
+              '",<br/>' +
+              '"loc": ' +
+              '<br/>{' +
+              '<br/>"locId": ' +
+              events[i].loc.locId +
+              ',<br/>' +
+              '"name": "' +
+              events[i].loc.name +
+              '"<br/>' +
+              '},' +
+              '<br/>' +
+              '"quota": ' +
+              events[i].quota +
+              '<br/>} <br/>'
+            ]
+            if(i == events.length-1){
+              format+= ["]"];
+            } else if (i < events.length){
+              format += [",<br/>"];
+            }
+          }
+          res.send(format);
         }
 
       });
-      //res.send(quotaSize);
-
     } else {
 
     Event.find({})
@@ -202,7 +226,36 @@ db.on('open', function () {
         console.log('Error: ' + err);
         return err;
       } else {
-        res.send('Event:' + '<br/>' + event + '<br/>');
+        let format = ["[" + "<br>"];
+        for(let i = 0; i<event.length; i++){
+          format += [
+            '{<br/>"eventId": ' +
+            event[i].eventId +
+            ',<br/>' +
+            '"name": "' +
+            event[i].name +
+            '",<br/>' +
+            '"loc": ' +
+            '<br/>{' +
+            '<br/>"locId": ' +
+            event[i].loc.locId +
+            ',<br/>' +
+            '"name": "' +
+            event[i].loc.name +
+            '"<br/>' +
+            '},' +
+            '<br/>' +
+            '"quota": ' +
+            event[i].quota +
+            '<br/>} <br/>'
+          ];
+          if(i == event.length-1){
+            format+= ["]"];
+          } else{
+            format += [",<br/>"];
+          }
+        }
+        res.send(format);
       }
     });
 
@@ -250,23 +303,103 @@ db.on('open', function () {
         console.log('Error: ' + err);
         return err;
       } else {
-        for (var i = 0; i < location.length; i++) {
-          console.log('Location ' + i + ' is: ' + location);
+        let format = ["[<br/>"];
+        for(let i = 0; i<location.length; i++){
+          format += [
+            '{<br/>"locId": ' +
+              location[i].locId +
+              ',<br/>' +
+              '"name": "' +
+              location[i].name +
+              '",<br/>'+
+              '"quota": ' +
+              location[i].quota +
+              '<br/>}<br/>'
+          ];
+          if(i == location.length-1){
+            format+= ["]"];
+          } else if (i < location.length){
+            format += [",<br/>"];
+          }
         }
-        res.send('Location:' + '<br/>' + location + '<br/>');
+        res.send(format);
       }
     });
   });
 
 
-  //Error Pages
-  app.get('/error406', (req, res) => {
-    res.send("Error406 : Event not created.");
-  });
+  // Q8: PUT http://localhost:3000/ev/eventId
 
-  app.get('/error404', (req, res) => {
-    res.send("Error404 : Event not found.");
-  });
+  // Get html file for making the post request
+    app.get('/updateevent', (req, res) => {
+      res.sendFile(path.join(__dirname, '/update1.html'));
+    });
+
+    app.put('/ev/:eventid', (req, res) => {
+      Event.findOneAndUpdate({ eventId: req.params['eventid'] }, { $set: { name: req.body.name } })
+      .populate('loc')
+      .exec(async (err, event) => {
+        if (err) {
+          console.log(err)
+        } else {
+          console.log(event.loc.name);
+          res.send(
+            '{<br/>"eventId": ' +
+              event.eventId +
+              ',<br/>' +
+              '"name": "' +
+              event.name +
+              '",<br/>' +
+              '"loc": ' +
+              '<br/>{' +
+              '<br/>"locId": ' +
+              event.loc.locId +
+              ',<br/>' +
+              '"name": "' +
+              event.loc.name +
+              '"<br/>' +
+              '},' +
+              '<br/>' +
+              '"quota": ' +
+              event.quota +
+              '<br/>}'
+          )
+        }
+      })
+    })
+
+ /*    app.put('/ev/:evId', (req, res) => {
+      console.log(req.body);
+      let evId = req.body.updateId;
+      let evName = req.body.updateName;
+      let evLocId = req.body.updateLocId;
+      let evQuota = req.body.updateQuota;
+
+      Event.findOne({ eventId: evId})
+        .populate('loc')
+        .exec((err, event) => {
+          if(err){
+            console.log(err);
+          } else{
+            event.eventId = evId;
+            event.name = evName;
+            event.loc.locId = evLocId;
+            event.quota = evQuota;
+            console.log("Updated event: " + event);
+            res.send("Your event has been updated successfully:" + "<br/>" + event);
+          }
+        });
+      });
+ */
+
+  // Error Pages
+    app.get('/error406', (req, res) => {
+      res.send("Error406 : Event not created.");
+    });
+
+    app.get('/error404', (req, res) => {
+      res.send("Error404 : Event not found.");
+    });
 
   app.all('/*', (req, res) => {
     res.send('Default page.');

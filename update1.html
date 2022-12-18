@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Update Event Page</title>
+</head>
+<body>
+    <h1>Update Event</h1>
+    <label for="EventID"> Event ID:</label>
+    <input id = "updateId" name="updateId" placeholder="Event ID"/>
+    <br>
+    <label for="eventName">Event Name:</label>
+    <input id = "updateName" name="updateName" placeholder="Event Name"/>
+    <br>
+
+    <button onclick="updateEvent()">Update</button>
+    <p id="output"></p>
+</body>
+<script>
+  function updateEvent(){
+    let evId = document.getElementById("updateId").value;
+    let evName = document.getElementById("updateName").value;
+    let updatedEvent = "name=" + evName;
+    
+    fetch("http://localhost:3000/ev/" + evId, {
+      method: 'PUT',
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: updatedEvent
+    })
+    .then(res => res.text())
+    .then(data => document.getElementById("output").innerHTML = data);
+  }
+</script>
+</html>
